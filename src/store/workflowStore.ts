@@ -1,11 +1,19 @@
 import { create } from 'zustand';
 import { addEdge, applyEdgeChanges, applyNodeChanges, type Connection, type EdgeChange, type NodeChange } from 'reactflow';
-import type { AISettings, PMEdge, PMNode, PMNodeData, PMNodeType } from '../types/workflow';
-import { createNode } from '../lib/workflow/definitions';
-import { defaultSettings, loadSettings, loadWorkflow, saveSettings, saveWorkflow } from '../lib/storage/localStorage';
-import { loadWorkflowFromVault, saveWorkflowToVault } from '../lib/storage/vaultStorage';
+import type { AISettings, PMEdge, PMNode, PMNodeData, PMNodeType, TaskSummary, WorkflowDocument } from '../types/workflow';
+import { createNode, createStarterWorkflow } from '../lib/workflow/definitions';
+import { defaultSettings, loadSettings, saveSettings, saveWorkflow } from '../lib/storage/localStorage';
+import {
+  createTaskInVault,
+  listTasksFromVault,
+  loadWorkflowFromVault,
+  saveTaskNodesToVault,
+  saveWorkflowToVault,
+} from '../lib/storage/vaultStorage';
 
 interface WorkflowState {
+  tasks: TaskSummary[];
+  currentTask?: TaskSummary;
   nodes: PMNode[];
   edges: PMEdge[];
   selectedNodeId?: string;
@@ -13,6 +21,7 @@ interface WorkflowState {
   settingsOpen: boolean;
   artifactOpen: boolean;
   lastRunError?: string;
+  taskError?: string;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
@@ -24,29 +33,25 @@ interface WorkflowState {
   setSettingsOpen: (open: boolean) => void;
   setArtifactOpen: (open: boolean) => void;
   setLastRunError: (message?: string) => void;
-  hydrateFromVault: () => Promise<void>;
+  loadTasks: () => Promise<void>;
+  createTask: (name: string) => Promise<void>;
+  openTask: (task: TaskSummary) => Promise<void>;
+  closeTask: () => void;
   save: () => void;
+  saveArtifacts: () => Promise<void>;
 }
 
-const savedWorkflow = typeof localStorage === 'undefined' ? null : loadWorkflow();
-
-const starterNodes: PMNode[] = [
-  createNode('textInput', { x: 80, y: 120 }),
-  createNode('requirementExtractor', { x: 420, y: 120 }),
-  createNode('prdGenerator', { x: 760, y: 120 }),
-  createNode('markdownExport', { x: 1100, y: 120 }),
-];
-
-const starterEdges: PMEdge[] = [
-  { id: 'starter-1', source: starterNodes[0].id, target: starterNodes[1].id, animated: true },
-  { id: 'starter-2', source: starterNodes[1].id, target: starterNodes[2].id, animated: true },
-  { id: 'starter-3', source: starterNodes[2].id, target: starterNodes[3].id, animated: true },
-];
+const emptyWorkflow: WorkflowDocument = {
+  nodes: [],
+  edges: [],
+};
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
-  nodes: savedWorkflow?.nodes ?? starterNodes,
-  edges: savedWorkflow?.edges ?? starterEdges,
-  selectedNodeId: savedWorkflow?.selectedNodeId ?? starterNodes[0].id,
+  tasks: [],
+  currentTask: undefined,
+  nodes: emptyWorkflow.nodes,
+  edges: emptyWorkflow.edges,
+  selectedNodeId: undefined,
   settings: typeof localStorage === 'undefined' ? defaultSettings : loadSettings(),
   settingsOpen: false,
   artifactOpen: true,
@@ -72,7 +77,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     get().save();
   },
   addNode: (type) => {
-    const node = createNode(type, { x: 160 + get().nodes.length * 28, y: 160 + get().nodes.length * 18 });
+    const node = createNode(type, { x: 160 + get().nodes.length * 36, y: 180 + get().nodes.length * 24 });
     set({ nodes: [...get().nodes, node], selectedNodeId: node.id, artifactOpen: true });
     get().save();
   },
@@ -111,21 +116,73 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setArtifactOpen: (artifactOpen) => set({ artifactOpen }),
   setLastRunError: (lastRunError) => set({ lastRunError }),
-  hydrateFromVault: async () => {
-    const workflow = await loadWorkflowFromVault();
-    if (!workflow) return;
-
-    set({
-      nodes: workflow.nodes,
-      edges: workflow.edges,
-      selectedNodeId: workflow.selectedNodeId,
-    });
-    saveWorkflow(workflow);
+  loadTasks: async () => {
+    try {
+      set({ taskError: undefined });
+      const tasks = await listTasksFromVault();
+      set({ tasks });
+    } catch (error) {
+      set({ taskError: error instanceof Error ? error.message : 'Failed to load tasks.' });
+    }
   },
+  createTask: async (name) => {
+    try {
+      set({ taskError: undefined });
+      const task = await createTaskInVault(name);
+      const workflow = createStarterWorkflow(task.id);
+      await saveWorkflowToVault(task.id, workflow);
+      saveWorkflow(workflow);
+      set({
+        tasks: [task, ...get().tasks],
+        currentTask: task,
+        nodes: workflow.nodes,
+        edges: workflow.edges,
+        selectedNodeId: workflow.selectedNodeId,
+        artifactOpen: true,
+      });
+    } catch (error) {
+      set({ taskError: error instanceof Error ? error.message : 'Failed to create task.' });
+    }
+  },
+  openTask: async (task) => {
+    try {
+      set({ taskError: undefined });
+      const storedWorkflow = await loadWorkflowFromVault(task.id);
+      const workflow = storedWorkflow ?? createStarterWorkflow(task.id);
+      if (!storedWorkflow) {
+        await saveWorkflowToVault(task.id, workflow);
+      }
+      saveWorkflow(workflow);
+      set({
+        currentTask: task,
+        nodes: workflow.nodes,
+        edges: workflow.edges,
+        selectedNodeId: workflow.selectedNodeId,
+        artifactOpen: true,
+      });
+    } catch (error) {
+      set({ taskError: error instanceof Error ? error.message : 'Failed to open task.' });
+    }
+  },
+  closeTask: () =>
+    set({
+      currentTask: undefined,
+      nodes: [],
+      edges: [],
+      selectedNodeId: undefined,
+      artifactOpen: true,
+      lastRunError: undefined,
+    }),
   save: () => {
-    const { nodes, edges, selectedNodeId } = get();
-    const workflow = { nodes, edges, selectedNodeId };
+    const { currentTask, nodes, edges, selectedNodeId } = get();
+    if (!currentTask) return;
+    const workflow = { taskId: currentTask.id, nodes, edges, selectedNodeId };
     saveWorkflow(workflow);
-    void saveWorkflowToVault(workflow);
+    void saveWorkflowToVault(currentTask.id, workflow);
+  },
+  saveArtifacts: async () => {
+    const { currentTask, nodes } = get();
+    if (!currentTask) return;
+    await saveTaskNodesToVault(currentTask.id, nodes);
   },
 }));

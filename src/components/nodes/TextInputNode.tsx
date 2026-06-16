@@ -1,11 +1,11 @@
 import type { NodeProps } from 'reactflow';
-import type { PMNodeData, TextInputConfig } from '../../types/workflow';
+import type { MessageConfig, PMNodeData } from '../../types/workflow';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { PMNodeShell } from './PMNodeShell';
 
 export function TextInputNode({ id, data }: NodeProps<PMNodeData>) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
-  const config = data.config as TextInputConfig;
+  const config = data.config as MessageConfig;
 
   return (
     <PMNodeShell data={data}>
@@ -27,7 +27,7 @@ export function TextInputNode({ id, data }: NodeProps<PMNodeData>) {
             config: { ...config, rawText: event.target.value },
           })
         }
-        placeholder="Paste raw Slack, email, meeting notes..."
+        placeholder="Paste raw message, meeting notes, or requirement context..."
       />
     </PMNodeShell>
   );

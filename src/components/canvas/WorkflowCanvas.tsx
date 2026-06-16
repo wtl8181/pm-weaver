@@ -3,7 +3,6 @@ import { useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { TextInputNode } from '../nodes/TextInputNode';
 import { AITransformNode } from '../nodes/AITransformNode';
-import { MarkdownExportNode } from '../nodes/MarkdownExportNode';
 
 export function WorkflowCanvas() {
   const nodes = useWorkflowStore((state) => state.nodes);
@@ -15,11 +14,8 @@ export function WorkflowCanvas() {
 
   const nodeTypes = useMemo<NodeTypes>(
     () => ({
-      textInput: TextInputNode,
-      requirementExtractor: AITransformNode,
-      openQuestions: AITransformNode,
-      prdGenerator: AITransformNode,
-      markdownExport: MarkdownExportNode,
+      message: TextInputNode,
+      prd: AITransformNode,
     }),
     [],
   );

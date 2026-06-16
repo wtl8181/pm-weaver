@@ -1,28 +1,23 @@
 import type { Edge, Node } from 'reactflow';
 
-export type PMNodeType =
-  | 'textInput'
-  | 'requirementExtractor'
-  | 'openQuestions'
-  | 'prdGenerator'
-  | 'markdownExport';
+export type PMNodeType = 'message' | 'prd';
 
 export type NodeStatus = 'idle' | 'running' | 'success' | 'error';
 
-export interface TextInputConfig {
+export interface MessageConfig {
   title: string;
   rawText: string;
 }
 
-export interface MarkdownExportConfig {
-  fileName: string;
+export interface PrdConfig {
+  title: string;
 }
 
 export interface PMNodeData {
   label: string;
   nodeType: PMNodeType;
   status: NodeStatus;
-  config: TextInputConfig | MarkdownExportConfig | Record<string, never>;
+  config: MessageConfig | PrdConfig;
   inputSnapshot?: string;
   output?: string;
   errorMessage?: string;
@@ -32,19 +27,38 @@ export type PMNode = Node<PMNodeData, PMNodeType>;
 export type PMEdge = Edge;
 
 export interface WorkflowDocument {
+  taskId?: string;
   nodes: PMNode[];
   edges: PMEdge[];
   selectedNodeId?: string;
 }
 
+export interface TaskSummary {
+  id: string;
+  name: string;
+  path?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface AISettings {
+  provider: 'openai' | 'hermes';
   apiKey: string;
   model: string;
+  localEndpoint: string;
   temperature: number;
 }
 
 export interface AIRequest {
   apiKey: string;
+  model: string;
+  systemPrompt: string;
+  userPrompt: string;
+  temperature: number;
+}
+
+export interface LocalAIRequest {
+  endpoint: string;
   model: string;
   systemPrompt: string;
   userPrompt: string;

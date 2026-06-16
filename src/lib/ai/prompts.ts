@@ -4,42 +4,7 @@ const pmSystemPrompt = `You are PM Weaver, a senior product manager assistant. T
 
 export function getPromptForNode(type: PMNodeType, upstream: string): { systemPrompt: string; userPrompt: string } {
   switch (type) {
-    case 'requirementExtractor':
-      return {
-        systemPrompt: pmSystemPrompt,
-        userPrompt: `Extract product requirements from the context below. Return Markdown exactly in this shape:
-
-## Requirements
-
-### Requirement 1
-
-- Description:
-- Trigger:
-- Business Rule:
-- System Behavior:
-- Data Impact:
-- Owner:
-- Priority:
-
-Add more numbered requirements when needed.
-
-Context:
-${upstream}`,
-      };
-    case 'openQuestions':
-      return {
-        systemPrompt: pmSystemPrompt,
-        userPrompt: `Extract open questions from the context below. Return Markdown as a table:
-
-## Open Questions
-
-| Question | Suggested Owner | Reason | Priority |
-|---|---|---|---|
-
-Context:
-${upstream}`,
-      };
-    case 'prdGenerator':
+    case 'prd':
       return {
         systemPrompt: pmSystemPrompt,
         userPrompt: `Generate a PRD draft from the context below. Return Markdown with this structure:

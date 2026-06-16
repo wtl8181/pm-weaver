@@ -1,6 +1,6 @@
 import { Copy, Download, PanelRightClose } from 'lucide-react';
 import { useMemo } from 'react';
-import type { MarkdownExportConfig } from '../../types/workflow';
+import type { MessageConfig } from '../../types/workflow';
 import { copyMarkdown, downloadMarkdown } from '../../lib/export/markdown';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { Button } from '../ui/Button';
@@ -12,8 +12,10 @@ export function ArtifactViewer() {
   const setArtifactOpen = useWorkflowStore((state) => state.setArtifactOpen);
   const selectedNode = useMemo(() => nodes.find((node) => node.id === selectedNodeId), [nodes, selectedNodeId]);
 
-  const output = selectedNode?.data.output ?? '';
-  const exportConfig = selectedNode?.data.nodeType === 'markdownExport' ? (selectedNode.data.config as MarkdownExportConfig) : undefined;
+  const output =
+    selectedNode?.data.output ??
+    (selectedNode?.data.nodeType === 'message' ? (selectedNode.data.config as MessageConfig).rawText : '');
+  const downloadName = `${selectedNode?.data.label ?? 'artifact'}.md`;
 
   return (
     <aside className="flex h-full w-[380px] shrink-0 flex-col border-l border-line bg-panel">
@@ -40,7 +42,7 @@ export function ArtifactViewer() {
               <Button
                 className="h-8 px-2"
                 disabled={!output}
-                onClick={() => downloadMarkdown(exportConfig?.fileName ?? `${selectedNode.data.label}.md`, output)}
+                onClick={() => downloadMarkdown(downloadName, output)}
               >
                 <Download size={14} />
               </Button>

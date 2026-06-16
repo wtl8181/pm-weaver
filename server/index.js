@@ -1,12 +1,13 @@
 import { createServer } from 'node:http';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 const vaultRoot = path.join(projectRoot, 'vault', 'PM Weaver');
-const workflowPath = path.join(vaultRoot, 'Workflows', 'default.workflow.json');
+const tasksRoot = path.join(vaultRoot, 'Tasks');
+const workflowsRoot = path.join(vaultRoot, 'Workflows');
 const artifactsRoot = path.join(vaultRoot, 'Artifacts');
 const port = Number(process.env.PM_WEAVER_API_PORT ?? 8787);
 
@@ -26,8 +27,38 @@ function slugify(value) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
-      .slice(0, 80) || 'artifact'
+      .slice(0, 64) || 'task'
   );
+}
+
+function taskMarkdown(task) {
+  return `---\npm_weaver_type: task\ntask_id: ${task.id}\ntask_name: ${JSON.stringify(task.name)}\ncreated_at: ${task.createdAt}\nupdated_at: ${task.updatedAt}\n---\n\n# ${task.name}\n\n`;
+}
+
+function nodeMarkdown({ content, label, nodeId, nodeType, taskId }) {
+  return `---\npm_weaver_type: ${nodeType}\ntask_id: ${taskId}\nnode_id: ${nodeId}\nnode_label: ${JSON.stringify(label)}\nupdated_at: ${new Date().toISOString()}\n---\n\n${content ?? ''}\n`;
+}
+
+function parseFrontmatter(markdown) {
+  if (!markdown.startsWith('---\n')) return {};
+  const end = markdown.indexOf('\n---', 4);
+  if (end === -1) return {};
+
+  return markdown
+    .slice(4, end)
+    .split('\n')
+    .reduce((accumulator, line) => {
+      const separator = line.indexOf(':');
+      if (separator === -1) return accumulator;
+      const key = line.slice(0, separator).trim();
+      const rawValue = line.slice(separator + 1).trim();
+      try {
+        accumulator[key] = JSON.parse(rawValue);
+      } catch {
+        accumulator[key] = rawValue;
+      }
+      return accumulator;
+    }, {});
 }
 
 async function readJsonBody(request) {
@@ -40,13 +71,71 @@ async function readJsonBody(request) {
   return raw ? JSON.parse(raw) : {};
 }
 
+async function callLocalAI(body) {
+  const endpoint = String(body.endpoint ?? '').trim();
+  const model = String(body.model ?? '').trim();
+
+  if (!endpoint) {
+    throw new Error('Local Hermes endpoint is required.');
+  }
+
+  const prompt = `${body.systemPrompt ?? ''}\n\n${body.userPrompt ?? ''}`.trim();
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      prompt,
+      stream: false,
+      options: {
+        temperature: Number(body.temperature ?? 0.2),
+      },
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error ?? `Local Hermes request failed with ${response.status}`);
+  }
+
+  return data.response ?? data.output ?? data.text ?? data.message?.content ?? '';
+}
+
 async function ensureVault() {
-  await mkdir(path.dirname(workflowPath), { recursive: true });
+  await mkdir(tasksRoot, { recursive: true });
+  await mkdir(workflowsRoot, { recursive: true });
   await mkdir(artifactsRoot, { recursive: true });
 }
 
-function artifactMarkdown({ content, label, nodeId, nodeType, workflowId }) {
-  return `---\npm_weaver_type: ${nodeType ?? 'artifact'}\nworkflow_id: ${workflowId ?? 'default'}\nnode_id: ${nodeId ?? ''}\nnode_label: ${JSON.stringify(label ?? 'Artifact')}\ncreated_at: ${new Date().toISOString()}\n---\n\n${content ?? ''}\n`;
+function safeTaskId(taskId) {
+  const safe = path.basename(taskId);
+  if (!safe || safe !== taskId) {
+    throw new Error('Invalid task id.');
+  }
+  return safe;
+}
+
+async function listTasks() {
+  await ensureVault();
+  const files = await readdir(tasksRoot);
+  const tasks = await Promise.all(
+    files
+      .filter((file) => file.endsWith('.md'))
+      .map(async (file) => {
+        const fullPath = path.join(tasksRoot, file);
+        const markdown = await readFile(fullPath, 'utf8');
+        const frontmatter = parseFrontmatter(markdown);
+        return {
+          id: String(frontmatter.task_id ?? file.replace(/\.md$/, '')),
+          name: String(frontmatter.task_name ?? file.replace(/\.md$/, '')),
+          createdAt: frontmatter.created_at ? String(frontmatter.created_at) : undefined,
+          updatedAt: frontmatter.updated_at ? String(frontmatter.updated_at) : undefined,
+          path: fullPath,
+        };
+      }),
+  );
+
+  return tasks.sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')));
 }
 
 const server = createServer(async (request, response) => {
@@ -57,45 +146,83 @@ const server = createServer(async (request, response) => {
     }
 
     const url = new URL(request.url ?? '/', `http://${request.headers.host}`);
+    const parts = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
       sendJson(response, 200, { ok: true, vaultRoot });
       return;
     }
 
-    if (url.pathname === '/api/vault/workflow') {
-      await ensureVault();
+    if (request.method === 'POST' && url.pathname === '/api/ai/local-generate') {
+      const body = await readJsonBody(request);
+      const text = await callLocalAI(body);
+      sendJson(response, 200, { text });
+      return;
+    }
 
+    if (parts.join('/') === 'api/vault/tasks') {
       if (request.method === 'GET') {
-        try {
-          const workflow = JSON.parse(await readFile(workflowPath, 'utf8'));
-          sendJson(response, 200, { workflow, path: workflowPath });
-        } catch (error) {
-          if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
-            sendJson(response, 200, { workflow: null, path: workflowPath });
-            return;
-          }
-          throw error;
-        }
+        sendJson(response, 200, { tasks: await listTasks(), vaultRoot });
         return;
       }
 
-      if (request.method === 'PUT') {
-        const workflow = await readJsonBody(request);
-        await writeFile(workflowPath, `${JSON.stringify(workflow, null, 2)}\n`, 'utf8');
-        sendJson(response, 200, { ok: true, path: workflowPath });
+      if (request.method === 'POST') {
+        await ensureVault();
+        const body = await readJsonBody(request);
+        const name = String(body.name ?? '').trim();
+        if (!name) {
+          sendJson(response, 400, { error: 'Task name is required.' });
+          return;
+        }
+
+        const now = new Date().toISOString();
+        const id = `${Date.now()}-${slugify(name)}`;
+        const task = { id, name, createdAt: now, updatedAt: now };
+        await writeFile(path.join(tasksRoot, `${id}.md`), taskMarkdown(task), 'utf8');
+        sendJson(response, 201, { task: { ...task, path: path.join(tasksRoot, `${id}.md`) } });
         return;
       }
     }
 
-    if (request.method === 'POST' && url.pathname === '/api/vault/artifacts') {
+    if (parts[0] === 'api' && parts[1] === 'vault' && parts[2] === 'tasks' && parts[3]) {
       await ensureVault();
-      const artifact = await readJsonBody(request);
-      const baseName = slugify(artifact.fileName ?? artifact.label ?? artifact.nodeId ?? 'artifact').replace(/-md$/, '');
-      const filePath = path.join(artifactsRoot, `${baseName}.md`);
-      await writeFile(filePath, artifactMarkdown(artifact), 'utf8');
-      sendJson(response, 200, { ok: true, path: filePath });
-      return;
+      const taskId = safeTaskId(parts[3]);
+
+      if (parts[4] === 'workflow') {
+        const workflowPath = path.join(workflowsRoot, `${taskId}.workflow.json`);
+
+        if (request.method === 'GET') {
+          try {
+            const workflow = JSON.parse(await readFile(workflowPath, 'utf8'));
+            sendJson(response, 200, { workflow, path: workflowPath });
+          } catch (error) {
+            if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+              sendJson(response, 200, { workflow: null, path: workflowPath });
+              return;
+            }
+            throw error;
+          }
+          return;
+        }
+
+        if (request.method === 'PUT') {
+          const workflow = await readJsonBody(request);
+          await writeFile(workflowPath, `${JSON.stringify({ ...workflow, taskId }, null, 2)}\n`, 'utf8');
+          sendJson(response, 200, { ok: true, path: workflowPath });
+          return;
+        }
+      }
+
+      if (parts[4] === 'nodes' && request.method === 'POST') {
+        const node = await readJsonBody(request);
+        const nodeId = String(node.nodeId ?? 'node');
+        const nodeType = String(node.nodeType ?? 'node');
+        const baseName = `${taskId}-${nodeType}-${slugify(node.label ?? nodeId)}`;
+        const artifactPath = path.join(artifactsRoot, `${baseName}.md`);
+        await writeFile(artifactPath, nodeMarkdown({ ...node, taskId }), 'utf8');
+        sendJson(response, 200, { ok: true, path: artifactPath });
+        return;
+      }
     }
 
     sendJson(response, 404, { error: 'Not found' });

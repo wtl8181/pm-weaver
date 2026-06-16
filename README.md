@@ -1,8 +1,8 @@
 # PM Weaver / 产品经理工作流工作台
 
-PM Weaver is a local-first workflow canvas for product managers. It helps transform messy product context, such as Slack discussions, emails, meeting notes, requirement drafts, and screenshots, into structured PM artifacts.
+PM Weaver is a local-first workflow canvas for product managers. The current MVP focuses on a minimal loop: create a task, enter its canvas, paste raw messages, and generate a PRD draft with an LLM.
 
-PM Weaver 是一个本地优先的产品经理工作流画布工具，用于把 Slack 讨论、邮件、会议纪要、需求草稿、截图说明等零散上下文，转换成结构化的产品文档和交付物。
+PM Weaver 是一个本地优先的产品经理工作流画布工具。当前 MVP 聚焦最小闭环：新建任务、进入任务画布、粘贴原始消息，并通过 LLM 生成 PRD 初稿。
 
 The MVP runs as a local full-stack app: a Vite browser UI plus a tiny Node file API that stores workflow data in a project-local Obsidian-compatible vault.
 
@@ -43,33 +43,30 @@ The dev command starts two local processes:
 
 ## Basic Workflow / 基础使用流程
 
-1. Open **Settings** and enter your OpenAI API key.
-2. Keep the default model `gpt-5.1`, or enter another OpenAI model string.
-3. Paste raw product context into a **Text Input** node.
-4. Connect it to **Requirement Extractor**, **Open Questions**, or **PRD Generator** nodes.
-5. Connect the final artifact to **Markdown Export**.
-6. Click **Run**.
-7. Select any node to inspect its input snapshot, full output, status, or error.
-8. Use **Copy** or **Download** on the export node or right-side artifact viewer.
+1. Create a task from the task home page.
+2. PM Weaver creates a task Markdown file inside the project-local Obsidian vault.
+3. Enter the task canvas.
+4. Paste raw product context into a **Message** node.
+5. Connect the **Message** node to a **PRD** node.
+6. Open **Settings** and choose an AI provider. Use **Local Hermes** for a local Ollama-compatible Hermes model, or **OpenAI** with an API key.
+7. Click **Run**.
+8. Select the **PRD** node to inspect, copy, or download the generated Markdown.
 
 中文流程：
 
-1. 打开 **Settings**，输入 OpenAI API Key。
-2. 保留默认模型 `gpt-5.1`，或填写其他 OpenAI 模型名称。
-3. 在 **Text Input** 节点中粘贴原始产品上下文。
-4. 将输入节点连接到 **Requirement Extractor**、**Open Questions** 或 **PRD Generator** 节点。
-5. 将最终产物连接到 **Markdown Export** 节点。
-6. 点击 **Run** 运行工作流。
-7. 点击任意节点，在右侧面板查看输入快照、完整输出、运行状态或错误信息。
-8. 在导出节点或右侧 Artifact Viewer 中复制或下载 Markdown。
+1. 在任务首页新建一个 Task。
+2. PM Weaver 会在项目内 Obsidian Vault 中创建一个 Task Markdown 文件。
+3. 点击新建后进入该 Task 的画布。
+4. 在 **Message** 节点中粘贴原始产品上下文。
+5. 将 **Message** 节点连接到 **PRD** 节点。
+6. 打开 **Settings** 选择 AI Provider。使用本地 Ollama 兼容的 Hermes 模型时选择 **Local Hermes**；使用 OpenAI 时再填写 API Key。
+7. 点击 **Run** 运行工作流。
+8. 点击 **PRD** 节点，在右侧面板查看、复制或下载生成的 Markdown。
 
 ## Implemented Nodes / 已实现节点
 
-- **Text Input Node / 文本输入节点**：stores raw Slack, email, meeting notes, or requirement discussion text. 存放 Slack、邮件、会议纪要、需求讨论等原始文本。
-- **Requirement Extractor Node / 需求提取节点**：generates structured requirement Markdown. 生成结构化需求 Markdown。
-- **Open Questions Node / 待确认问题节点**：generates a Markdown table of questions, owners, reasons, and priorities. 生成待确认问题、建议负责人、原因和优先级表格。
-- **PRD Generator Node / PRD 生成节点**：generates a PRD draft with PM-focused sections. 生成面向产品经理的 PRD 初稿。
-- **Markdown Export Node / Markdown 导出节点**：previews, copies, and downloads generated Markdown. 预览、复制并下载生成的 Markdown。
+- **Message Node / 消息节点**：stores raw Slack, email, meeting notes, or requirement discussion text. 存放 Slack、邮件、会议纪要、需求讨论等原始消息。
+- **PRD Node / PRD 节点**：uses upstream message context to generate a PRD draft with OpenAI. 基于上游消息上下文调用 OpenAI 生成 PRD 初稿。
 
 ## Data Storage / 数据存储
 
@@ -91,8 +88,10 @@ Runtime data is written by the local API:
 
 ```text
 vault/PM Weaver/
+  Tasks/
+    *.md
   Workflows/
-    default.workflow.json
+    {taskId}.workflow.json
   Artifacts/
     *.md
 ```
@@ -101,8 +100,8 @@ The browser also keeps a `localStorage` cache:
 
 浏览器也会保留一份 `localStorage` 缓存：
 
-- Workflow graph: nodes, edges, selected node. / 工作流画布：节点、连线、选中节点。
-- Settings: OpenAI API key, model, temperature. / 设置项：OpenAI API Key、模型、temperature。
+- Workflow graph: current task, nodes, edges, selected node. / 工作流画布：当前任务、节点、连线、选中节点。
+- Settings: AI provider, OpenAI API key, local Hermes endpoint, model, temperature. / 设置项：AI Provider、OpenAI API Key、本地 Hermes endpoint、模型、temperature。
 
 Generated workflow JSON and artifacts are ignored by git by default because they may contain private product context or AI-generated business documents. The vault scaffold and README are tracked.
 
@@ -138,6 +137,6 @@ vault/
 
 ## Notes / 注意事项
 
-The OpenAI API key is stored locally in your browser. For a future Tauri desktop version, move the API key into a secure local secret store and keep the existing AI provider and vault storage boundaries.
+The OpenAI API key is stored locally in your browser only when you choose the OpenAI provider. Local Hermes does not require an API key. For a future Tauri desktop version, move secrets into a secure local secret store and keep the existing AI provider and vault storage boundaries.
 
-OpenAI API Key 当前存储在浏览器本地。未来如果升级为 Tauri 桌面应用，建议把 API Key 移到安全的本地密钥存储中，并继续保留当前的 AI Provider 与 Vault Storage 边界。
+只有选择 OpenAI Provider 时才需要 OpenAI API Key，并且当前 Key 存储在浏览器本地。Local Hermes 不需要 API Key。未来如果升级为 Tauri 桌面应用，建议把密钥移到安全的本地密钥存储中，并继续保留当前的 AI Provider 与 Vault Storage 边界。

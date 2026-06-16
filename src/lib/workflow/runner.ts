@@ -56,16 +56,11 @@ export async function runWorkflow(nodes: PMNode[], edges: PMEdge[], settings: AI
     try {
       let output = '';
 
-      if (node.data.nodeType === 'textInput') {
+      if (node.data.nodeType === 'message') {
         const config = node.data.config as { title: string; rawText: string };
         output = config.rawText.trim();
         if (!output) {
-          throw new Error('Text Input Node is empty.');
-        }
-      } else if (node.data.nodeType === 'markdownExport') {
-        output = upstream;
-        if (!output.trim()) {
-          throw new Error('Markdown Export Node has no upstream Markdown to export.');
+          throw new Error('Message node is empty.');
         }
       } else {
         if (!upstream.trim()) {

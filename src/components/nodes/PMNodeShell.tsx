@@ -1,20 +1,20 @@
 import { Handle, Position } from 'reactflow';
-import { AlertTriangle, FileText, HelpCircle, ListChecks, PencilLine, Upload } from 'lucide-react';
+import { AlertTriangle, FileText, MessageSquare } from 'lucide-react';
 import type { PropsWithChildren } from 'react';
 import type { PMNodeData, PMNodeType } from '../../types/workflow';
 import { StatusPill } from '../ui/StatusPill';
 
-const icons: Record<PMNodeType, typeof PencilLine> = {
-  textInput: PencilLine,
-  requirementExtractor: ListChecks,
-  openQuestions: HelpCircle,
-  prdGenerator: FileText,
-  markdownExport: Upload,
+const icons: Record<PMNodeType, typeof MessageSquare> = {
+  message: MessageSquare,
+  prd: FileText,
 };
 
 function previewText(data: PMNodeData) {
   if (data.errorMessage) return data.errorMessage;
   if (data.output) return data.output.slice(0, 220);
+  if (data.nodeType === 'message' && 'rawText' in data.config && data.config.rawText) {
+    return data.config.rawText.slice(0, 220);
+  }
   return 'No output yet. Run the workflow to generate an artifact.';
 }
 
@@ -23,7 +23,7 @@ export function PMNodeShell({ data, children }: PropsWithChildren<{ data: PMNode
 
   return (
     <div className="w-[280px] rounded-lg border border-line bg-panel shadow-node">
-      {data.nodeType !== 'textInput' && <Handle type="target" position={Position.Left} />}
+      {data.nodeType !== 'message' && <Handle type="target" position={Position.Left} />}
       <div className="border-b border-line px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">

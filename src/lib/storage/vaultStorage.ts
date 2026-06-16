@@ -1,54 +1,75 @@
-import type { PMNode, WorkflowDocument } from '../../types/workflow';
+import type { PMNode, TaskSummary, WorkflowDocument } from '../../types/workflow';
+
+interface TasksResponse {
+  tasks: TaskSummary[];
+  vaultRoot: string;
+}
+
+interface TaskResponse {
+  task: TaskSummary;
+}
 
 interface WorkflowResponse {
   workflow: WorkflowDocument | null;
   path: string;
 }
 
-const workflowEndpoint = '/api/vault/workflow';
-const artifactEndpoint = '/api/vault/artifacts';
-
-export async function loadWorkflowFromVault(): Promise<WorkflowDocument | null> {
-  try {
-    const response = await fetch(workflowEndpoint);
-    if (!response.ok) return null;
-    const data = (await response.json()) as WorkflowResponse;
-    return data.workflow;
-  } catch {
-    return null;
+export async function listTasksFromVault(): Promise<TaskSummary[]> {
+  const response = await fetch('/api/vault/tasks');
+  if (!response.ok) {
+    throw new Error('Failed to load tasks from vault.');
   }
+
+  const data = (await response.json()) as TasksResponse;
+  return data.tasks;
 }
 
-export async function saveWorkflowToVault(workflow: WorkflowDocument): Promise<void> {
-  await fetch(workflowEndpoint, {
+export async function createTaskInVault(name: string): Promise<TaskSummary> {
+  const response = await fetch('/api/vault/tasks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+
+  const data = (await response.json()) as Partial<TaskResponse> & { error?: string };
+  if (!response.ok || !data.task) {
+    throw new Error(data.error ?? 'Failed to create task.');
+  }
+
+  return data.task;
+}
+
+export async function loadWorkflowFromVault(taskId: string): Promise<WorkflowDocument | null> {
+  const response = await fetch(`/api/vault/tasks/${encodeURIComponent(taskId)}/workflow`);
+  if (!response.ok) return null;
+  const data = (await response.json()) as WorkflowResponse;
+  return data.workflow;
+}
+
+export async function saveWorkflowToVault(taskId: string, workflow: WorkflowDocument): Promise<void> {
+  await fetch(`/api/vault/tasks/${encodeURIComponent(taskId)}/workflow`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(workflow),
   });
 }
 
-export async function saveNodeArtifactToVault(node: PMNode): Promise<void> {
-  if (!node.data.output?.trim()) return;
+export async function saveNodeArtifactToVault(taskId: string, node: PMNode): Promise<void> {
+  const content = node.data.nodeType === 'message' ? 'rawText' in node.data.config ? node.data.config.rawText : '' : node.data.output;
+  if (!content?.trim()) return;
 
-  const fileName =
-    node.data.nodeType === 'markdownExport' && 'fileName' in node.data.config
-      ? String(node.data.config.fileName)
-      : `${node.data.label}-${node.id}.md`;
-
-  await fetch(artifactEndpoint, {
+  await fetch(`/api/vault/tasks/${encodeURIComponent(taskId)}/nodes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      workflowId: 'default',
       nodeId: node.id,
       nodeType: node.data.nodeType,
       label: node.data.label,
-      fileName,
-      content: node.data.output,
+      content,
     }),
   });
 }
 
-export async function saveSuccessfulArtifactsToVault(nodes: PMNode[]): Promise<void> {
-  await Promise.all(nodes.filter((node) => node.data.status === 'success').map((node) => saveNodeArtifactToVault(node)));
+export async function saveTaskNodesToVault(taskId: string, nodes: PMNode[]): Promise<void> {
+  await Promise.all(nodes.map((node) => saveNodeArtifactToVault(taskId, node)));
 }

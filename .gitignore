@@ -9,6 +9,8 @@ vite.config.js
 vite.config.d.ts
 vault/PM Weaver/Workflows/*.workflow.json
 vault/PM Weaver/Artifacts/*.md
+vault/PM Weaver/Tasks/*.md
 !vault/PM Weaver/README.md
 !vault/PM Weaver/Workflows/.gitkeep
 !vault/PM Weaver/Artifacts/.gitkeep
+!vault/PM Weaver/Tasks/.gitkeep

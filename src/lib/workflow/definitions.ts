@@ -1,30 +1,15 @@
-import type { NodeDefinition, PMNode, PMNodeType } from '../../types/workflow';
+import type { NodeDefinition, PMEdge, PMNode, PMNodeType, WorkflowDocument } from '../../types/workflow';
 
 export const nodeDefinitions: NodeDefinition[] = [
   {
-    type: 'textInput',
-    label: 'Text Input',
-    description: 'Paste Slack, email, meeting notes, or raw requirement context.',
+    type: 'message',
+    label: 'Message',
+    description: 'Paste raw product messages, notes, or requirement context.',
   },
   {
-    type: 'requirementExtractor',
-    label: 'Requirement Extractor',
-    description: 'Extract structured product requirements from upstream context.',
-  },
-  {
-    type: 'openQuestions',
-    label: 'Open Questions',
-    description: 'Identify unresolved questions, owners, reasons, and priorities.',
-  },
-  {
-    type: 'prdGenerator',
-    label: 'PRD Generator',
-    description: 'Draft a complete PM-style PRD from upstream artifacts.',
-  },
-  {
-    type: 'markdownExport',
-    label: 'Markdown Export',
-    description: 'Preview, copy, and download generated Markdown.',
+    type: 'prd',
+    label: 'PRD',
+    description: 'Generate a PRD draft from connected message context.',
   },
 ];
 
@@ -40,12 +25,27 @@ export function createNode(type: PMNodeType, position = { x: 120, y: 120 }): PMN
       label: definition?.label ?? type,
       nodeType: type,
       status: 'idle',
-      config:
-        type === 'textInput'
-          ? { title: 'Source Context', rawText: '' }
-          : type === 'markdownExport'
-            ? { fileName: 'prd-draft.md' }
-            : {},
+      config: type === 'message' ? { title: 'Raw Message', rawText: '' } : { title: 'PRD Draft' },
     },
+  };
+}
+
+export function createStarterWorkflow(taskId: string): WorkflowDocument {
+  const messageNode = createNode('message', { x: 120, y: 160 });
+  const prdNode = createNode('prd', { x: 500, y: 160 });
+
+  return {
+    taskId,
+    nodes: [messageNode, prdNode],
+    edges: [
+      {
+        id: `${messageNode.id}-${prdNode.id}`,
+        source: messageNode.id,
+        target: prdNode.id,
+        animated: true,
+        style: { stroke: '#3dd6a6' },
+      },
+    ] satisfies PMEdge[],
+    selectedNodeId: messageNode.id,
   };
 }
