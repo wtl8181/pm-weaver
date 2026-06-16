@@ -33,12 +33,13 @@ export function SettingsPanel() {
               onChange={(event) =>
                 setDraft({
                   ...draft,
-                  provider: event.target.value as 'openai' | 'hermes',
-                  model: event.target.value === 'hermes' ? draft.model || 'hermes3' : draft.model || 'gpt-5.1',
+                  provider: event.target.value as 'hermesCli' | 'localHttp' | 'openai',
+                  model: event.target.value === 'openai' ? draft.model || 'gpt-5.1' : draft.model,
                 })
               }
             >
-              <option value="hermes">Local Hermes</option>
+              <option value="hermesCli">Hermes CLI</option>
+              <option value="localHttp">Local HTTP</option>
               <option value="openai">OpenAI</option>
             </select>
           </label>
@@ -56,7 +57,13 @@ export function SettingsPanel() {
             </label>
           )}
 
-          {draft.provider === 'hermes' && (
+          {draft.provider === 'hermesCli' && (
+            <div className="rounded-md border border-line bg-canvas/70 p-3 text-xs leading-5 text-slate-400">
+              Uses your installed Hermes CLI through <code>hermes -z</code>. No API key or local HTTP server is required.
+            </div>
+          )}
+
+          {draft.provider === 'localHttp' && (
             <div>
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Local Hermes Endpoint</span>
@@ -75,13 +82,13 @@ export function SettingsPanel() {
 
           <label className="block">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {draft.provider === 'hermes' ? 'Hermes Model' : 'OpenAI Model'}
+              {draft.provider === 'openai' ? 'OpenAI Model' : 'Model Override'}
             </span>
             <input
               className="mt-2 w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm text-slate-100 outline-none focus:border-accent"
               value={draft.model}
               onChange={(event) => setDraft({ ...draft, model: event.target.value })}
-              placeholder={draft.provider === 'hermes' ? 'hermes3' : 'gpt-5.1'}
+              placeholder={draft.provider === 'openai' ? 'gpt-5.1' : 'Optional, e.g. openrouter/auto'}
             />
           </label>
           <label className="block">

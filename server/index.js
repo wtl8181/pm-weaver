@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { spawn } from 'node:child_process';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -72,6 +73,10 @@ async function readJsonBody(request) {
 }
 
 async function callLocalAI(body) {
+  if (body.provider === 'hermesCli') {
+    return callHermesCli(body);
+  }
+
   const endpoint = String(body.endpoint ?? '').trim();
   const model = String(body.model ?? '').trim();
 
@@ -136,6 +141,49 @@ async function callLocalAI(body) {
     data.choices?.[0]?.text ??
     ''
   );
+}
+
+function callHermesCli(body) {
+  const prompt = `${body.systemPrompt ?? ''}\n\n${body.userPrompt ?? ''}`.trim();
+  const args = ['-z', prompt, '--ignore-rules', '--toolsets', ''];
+  const model = String(body.model ?? '').trim();
+
+  if (model) {
+    args.splice(0, 0, '--model', model);
+  }
+
+  return new Promise((resolve, reject) => {
+    const child = spawn('hermes', args, {
+      cwd: projectRoot,
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    const timeout = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error('Hermes CLI timed out after 120 seconds.'));
+    }, 120000);
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on('error', () => {
+      clearTimeout(timeout);
+      reject(new Error('Hermes CLI is not available on PATH. Install Hermes or choose another provider in Settings.'));
+    });
+    child.on('close', (code) => {
+      clearTimeout(timeout);
+      if (code === 0) {
+        resolve(stdout.trim());
+        return;
+      }
+      reject(new Error(stderr.trim() || `Hermes CLI exited with code ${code}.`));
+    });
+  });
 }
 
 async function ensureVault() {

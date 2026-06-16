@@ -42,7 +42,7 @@ export interface TaskSummary {
 }
 
 export interface AISettings {
-  provider: 'openai' | 'hermes';
+  provider: 'hermesCli' | 'localHttp' | 'openai';
   apiKey: string;
   model: string;
   localEndpoint: string;
@@ -58,6 +58,7 @@ export interface AIRequest {
 }
 
 export interface LocalAIRequest {
+  provider: 'hermesCli' | 'localHttp';
   endpoint: string;
   model: string;
   systemPrompt: string;

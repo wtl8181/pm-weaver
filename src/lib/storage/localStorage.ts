@@ -4,9 +4,9 @@ const WORKFLOW_KEY = 'pm-weaver.workflow.v1';
 const SETTINGS_KEY = 'pm-weaver.settings.v1';
 
 export const defaultSettings: AISettings = {
-  provider: 'hermes',
+  provider: 'hermesCli',
   apiKey: '',
-  model: 'hermes3',
+  model: '',
   localEndpoint: 'http://127.0.0.1:11434/api/generate',
   temperature: 0.2,
 };
@@ -30,7 +30,8 @@ export function loadSettings(): AISettings {
     if (!raw) return defaultSettings;
 
     const parsed = JSON.parse(raw) as Partial<AISettings>;
-    if (!parsed.provider) {
+    const provider = parsed.provider as string | undefined;
+    if (!provider || provider === 'hermes') {
       return {
         ...defaultSettings,
         apiKey: parsed.apiKey ?? '',

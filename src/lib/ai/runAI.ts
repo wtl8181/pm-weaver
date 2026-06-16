@@ -6,8 +6,9 @@ import type { AISettings, PMNodeType } from '../../types/workflow';
 export async function runAINode(type: PMNodeType, upstream: string, settings: AISettings): Promise<string> {
   const prompt = getPromptForNode(type, upstream);
 
-  if (settings.provider === 'hermes') {
+  if (settings.provider === 'hermesCli' || settings.provider === 'localHttp') {
     return callLocalHermes({
+      provider: settings.provider,
       endpoint: settings.localEndpoint,
       model: settings.model,
       temperature: settings.temperature,
