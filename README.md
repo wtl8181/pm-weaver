@@ -1,6 +1,6 @@
 # PM Weaver
 
-PM Weaver is a local-first workflow canvas for product managers. The MVP runs fully in the browser, stores workflow state and OpenAI settings in `localStorage`, and exports generated artifacts as Markdown files.
+PM Weaver is a local-first workflow canvas for product managers. The MVP runs as a local full-stack app: a Vite browser UI plus a tiny Node file API that stores workflow data in a project-local Obsidian-compatible vault.
 
 ## Tech Stack
 
@@ -11,6 +11,7 @@ PM Weaver is a local-first workflow canvas for product managers. The MVP runs fu
 - Tailwind CSS
 - Zustand
 - OpenAI Responses API via `fetch`
+- Project-local Obsidian vault as file storage
 
 ## Getting Started
 
@@ -22,8 +23,13 @@ npm run dev
 Open the local URL printed by Vite, usually:
 
 ```text
-http://localhost:5173
+http://127.0.0.1:5173
 ```
+
+The dev command starts:
+
+- Web UI: `http://127.0.0.1:5173`
+- Local file API: `http://127.0.0.1:8787`
 
 ## Basic Workflow
 
@@ -46,12 +52,32 @@ http://localhost:5173
 
 ## Data Storage
 
-The MVP stores data in browser `localStorage`:
+The project-local vault lives here:
+
+```text
+vault/PM Weaver/
+```
+
+You can open that folder directly as an Obsidian vault.
+
+Runtime data is written by the local API:
+
+```text
+vault/PM Weaver/
+  Workflows/
+    default.workflow.json
+  Artifacts/
+    *.md
+```
+
+The browser also keeps a `localStorage` cache:
 
 - Workflow graph: nodes, edges, selected node.
 - Settings: OpenAI API key, model, temperature.
 
-There is no login, cloud sync, server database, or third-party integration in this first version.
+Generated workflow JSON and artifacts are ignored by git by default because they may contain private product context or AI-generated business documents. The vault scaffold and README are tracked.
+
+There is no login, cloud sync, external database, or third-party integration in this first version.
 
 ## Project Structure
 
@@ -71,8 +97,12 @@ src/
   store/
   types/
   main.tsx
+server/
+  index.js
+vault/
+  PM Weaver/
 ```
 
 ## Notes
 
-The OpenAI API key is stored locally in your browser. For a future Tauri desktop version, move the API key into a secure local secret store and keep the existing AI provider boundary.
+The OpenAI API key is stored locally in your browser. For a future Tauri desktop version, move the API key into a secure local secret store and keep the existing AI provider and vault storage boundaries.

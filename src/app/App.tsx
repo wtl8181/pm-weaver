@@ -1,4 +1,5 @@
 import { ReactFlowProvider } from 'reactflow';
+import { useEffect } from 'react';
 import { WorkflowCanvas } from '../components/canvas/WorkflowCanvas';
 import { NodeLibrary } from '../components/panels/NodeLibrary';
 import { ArtifactViewer } from '../components/panels/ArtifactViewer';
@@ -9,6 +10,11 @@ import { useWorkflowStore } from '../store/workflowStore';
 export function App() {
   const settingsOpen = useWorkflowStore((state) => state.settingsOpen);
   const artifactOpen = useWorkflowStore((state) => state.artifactOpen);
+  const hydrateFromVault = useWorkflowStore((state) => state.hydrateFromVault);
+
+  useEffect(() => {
+    void hydrateFromVault();
+  }, [hydrateFromVault]);
 
   return (
     <ReactFlowProvider>

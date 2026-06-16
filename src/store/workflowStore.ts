@@ -3,6 +3,7 @@ import { addEdge, applyEdgeChanges, applyNodeChanges, type Connection, type Edge
 import type { AISettings, PMEdge, PMNode, PMNodeData, PMNodeType } from '../types/workflow';
 import { createNode } from '../lib/workflow/definitions';
 import { defaultSettings, loadSettings, loadWorkflow, saveSettings, saveWorkflow } from '../lib/storage/localStorage';
+import { loadWorkflowFromVault, saveWorkflowToVault } from '../lib/storage/vaultStorage';
 
 interface WorkflowState {
   nodes: PMNode[];
@@ -23,6 +24,7 @@ interface WorkflowState {
   setSettingsOpen: (open: boolean) => void;
   setArtifactOpen: (open: boolean) => void;
   setLastRunError: (message?: string) => void;
+  hydrateFromVault: () => Promise<void>;
   save: () => void;
 }
 
@@ -109,8 +111,21 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setArtifactOpen: (artifactOpen) => set({ artifactOpen }),
   setLastRunError: (lastRunError) => set({ lastRunError }),
+  hydrateFromVault: async () => {
+    const workflow = await loadWorkflowFromVault();
+    if (!workflow) return;
+
+    set({
+      nodes: workflow.nodes,
+      edges: workflow.edges,
+      selectedNodeId: workflow.selectedNodeId,
+    });
+    saveWorkflow(workflow);
+  },
   save: () => {
     const { nodes, edges, selectedNodeId } = get();
-    saveWorkflow({ nodes, edges, selectedNodeId });
+    const workflow = { nodes, edges, selectedNodeId };
+    saveWorkflow(workflow);
+    void saveWorkflowToVault(workflow);
   },
 }));

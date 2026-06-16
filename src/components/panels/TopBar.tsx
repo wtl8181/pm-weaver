@@ -1,4 +1,5 @@
 import { PanelRightOpen, Play, Save, Settings, Trash2 } from 'lucide-react';
+import { saveSuccessfulArtifactsToVault } from '../../lib/storage/vaultStorage';
 import { runWorkflow } from '../../lib/workflow/runner';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { Button } from '../ui/Button';
@@ -20,6 +21,7 @@ export function TopBar() {
     try {
       await runWorkflow(nodes, edges, settings, updateNodeData);
       save();
+      await saveSuccessfulArtifactsToVault(useWorkflowStore.getState().nodes);
     } catch (error) {
       setLastRunError(error instanceof Error ? error.message : 'Workflow failed.');
     }
