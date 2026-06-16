@@ -57,15 +57,20 @@ export function SettingsPanel() {
           )}
 
           {draft.provider === 'hermes' && (
-            <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Local Hermes Endpoint</span>
-              <input
-                className="mt-2 w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm text-slate-100 outline-none focus:border-accent"
-                value={draft.localEndpoint}
-                onChange={(event) => setDraft({ ...draft, localEndpoint: event.target.value })}
-                placeholder="http://127.0.0.1:11434/api/generate"
-              />
-            </label>
+            <div>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Local Hermes Endpoint</span>
+                <input
+                  className="mt-2 w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm text-slate-100 outline-none focus:border-accent"
+                  value={draft.localEndpoint}
+                  onChange={(event) => setDraft({ ...draft, localEndpoint: event.target.value })}
+                  placeholder="http://127.0.0.1:11434/api/generate"
+                />
+              </label>
+              <div className="mt-2 rounded-md border border-line bg-canvas/70 p-3 text-xs leading-5 text-slate-400">
+                Supports Ollama `/api/generate`, OpenAI-compatible `/v1/chat/completions`, and llama.cpp `/completion` endpoints.
+              </div>
+            </div>
           )}
 
           <label className="block">

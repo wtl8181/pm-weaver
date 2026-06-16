@@ -79,26 +79,63 @@ async function callLocalAI(body) {
     throw new Error('Local Hermes endpoint is required.');
   }
 
+  const temperature = Number(body.temperature ?? 0.2);
   const prompt = `${body.systemPrompt ?? ''}\n\n${body.userPrompt ?? ''}`.trim();
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      prompt,
-      stream: false,
-      options: {
-        temperature: Number(body.temperature ?? 0.2),
-      },
-    }),
-  });
+  const isOpenAICompatible = endpoint.includes('/v1/chat/completions');
+  const isLlamaCppCompletion = endpoint.endsWith('/completion');
+  const requestBody = isOpenAICompatible
+    ? {
+        model,
+        temperature,
+        messages: [
+          { role: 'system', content: body.systemPrompt ?? '' },
+          { role: 'user', content: body.userPrompt ?? '' },
+        ],
+      }
+    : isLlamaCppCompletion
+      ? {
+          prompt,
+          temperature,
+          stream: false,
+        }
+      : {
+          model,
+          prompt,
+          stream: false,
+          options: {
+            temperature,
+          },
+        };
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data?.error ?? `Local Hermes request failed with ${response.status}`);
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+  } catch {
+    throw new Error(
+      `Local Hermes endpoint is not reachable: ${endpoint}. Start your local model server or update the endpoint in Settings.`,
+    );
   }
 
-  return data.response ?? data.output ?? data.text ?? data.message?.content ?? '';
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = typeof data?.error === 'string' ? data.error : data?.error?.message;
+    throw new Error(message ?? `Local Hermes request failed with ${response.status} at ${endpoint}`);
+  }
+
+  return (
+    data.response ??
+    data.output ??
+    data.text ??
+    data.content ??
+    data.message?.content ??
+    data.choices?.[0]?.message?.content ??
+    data.choices?.[0]?.text ??
+    ''
+  );
 }
 
 async function ensureVault() {
