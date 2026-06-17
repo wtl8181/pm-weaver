@@ -3,12 +3,12 @@ import type { MessageConfig, PMNodeData } from '../../types/workflow';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { PMNodeShell } from './PMNodeShell';
 
-export function TextInputNode({ id, data }: NodeProps<PMNodeData>) {
+export function TextInputNode({ id, data, selected }: NodeProps<PMNodeData>) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const config = data.config as MessageConfig;
 
   return (
-    <PMNodeShell data={data}>
+    <PMNodeShell data={data} selected={selected}>
       <input
         className="nodrag w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm text-slate-100 outline-none focus:border-accent"
         value={config.title}

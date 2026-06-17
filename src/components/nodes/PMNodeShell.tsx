@@ -1,5 +1,6 @@
 import { Handle, Position } from 'reactflow';
 import { AlertTriangle, CalendarPlus, FileText, MessageSquare, Ticket } from 'lucide-react';
+import { clsx } from 'clsx';
 import type { PropsWithChildren } from 'react';
 import type { PMNodeData, PMNodeType } from '../../types/workflow';
 import { StatusPill } from '../ui/StatusPill';
@@ -20,11 +21,17 @@ function previewText(data: PMNodeData) {
   return 'No output yet. Run the workflow to generate an artifact.';
 }
 
-export function PMNodeShell({ data, children }: PropsWithChildren<{ data: PMNodeData }>) {
+export function PMNodeShell({ data, selected = false, children }: PropsWithChildren<{ data: PMNodeData; selected?: boolean }>) {
   const Icon = icons[data.nodeType];
 
   return (
-    <div className="w-[280px] rounded-lg border border-line bg-panel shadow-node">
+    <div
+      className={clsx(
+        'relative w-[280px] rounded-lg border bg-panel shadow-node transition',
+        selected ? 'border-accent ring-2 ring-accent/35 shadow-[0_0_0_1px_rgba(61,214,166,0.35),0_18px_45px_rgba(0,0,0,0.42)]' : 'border-line',
+      )}
+    >
+      {selected && <div className="absolute left-3 right-3 top-0 h-0.5 rounded-full bg-accent" />}
       {data.nodeType !== 'message' && <Handle type="target" position={Position.Left} />}
       <div className="border-b border-line px-4 py-3">
         <div className="flex items-center justify-between gap-3">

@@ -38,7 +38,7 @@ function Field({
   );
 }
 
-export function TemplateActionNode({ id, data }: NodeProps<PMNodeData>) {
+export function TemplateActionNode({ id, data, selected }: NodeProps<PMNodeData>) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
 
   if (data.nodeType === 'teamup') {
@@ -46,7 +46,7 @@ export function TemplateActionNode({ id, data }: NodeProps<PMNodeData>) {
     const patch = (next: Partial<TeamupConfig>) => updateNodeData(id, { config: { ...config, ...next } });
 
     return (
-      <PMNodeShell data={data}>
+      <PMNodeShell data={data} selected={selected}>
         <Field label="Title" value={config.title} onChange={(title) => patch({ title })} />
         <Field label="Template" value={config.template} onChange={(template) => patch({ template })} />
         <Field label="Owner" value={config.owner} onChange={(owner) => patch({ owner })} placeholder="Owner or team" />
@@ -74,7 +74,7 @@ export function TemplateActionNode({ id, data }: NodeProps<PMNodeData>) {
   const patch = (next: Partial<DingMeetingConfig>) => updateNodeData(id, { config: { ...config, ...next } });
 
   return (
-    <PMNodeShell data={data}>
+    <PMNodeShell data={data} selected={selected}>
       <Field label="Title" value={config.title} onChange={(title) => patch({ title })} />
       <Field label="Start" value={config.start} onChange={(start) => patch({ start })} placeholder="2026-06-17T14:00:00+08:00" />
       <Field label="End" value={config.end} onChange={(end) => patch({ end })} placeholder="2026-06-17T15:00:00+08:00" />
