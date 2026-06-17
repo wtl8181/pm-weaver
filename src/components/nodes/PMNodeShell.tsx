@@ -14,10 +14,11 @@ const icons: Record<PMNodeType, typeof MessageSquare> = {
 
 function previewText(data: PMNodeData) {
   if (data.errorMessage) return data.errorMessage;
-  if (data.output) return data.output.slice(0, 220);
   if (data.nodeType === 'message' && 'rawText' in data.config && data.config.rawText) {
     return data.config.rawText.slice(0, 220);
   }
+  if (data.output) return data.output.slice(0, 220);
+  if (data.nodeType === 'message') return 'Paste raw source text here.';
   return 'No output yet. Run the workflow to generate an artifact.';
 }
 
@@ -44,7 +45,7 @@ export function PMNodeShell({ data, selected = false, children }: PropsWithChild
               <div className="text-[11px] text-slate-500">{data.nodeType}</div>
             </div>
           </div>
-          <StatusPill status={data.status} />
+          {data.nodeType !== 'message' && <StatusPill status={data.status} />}
         </div>
       </div>
       <div className="space-y-3 p-4">

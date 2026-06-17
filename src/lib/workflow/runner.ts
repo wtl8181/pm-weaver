@@ -52,7 +52,11 @@ export async function runWorkflow(nodes: PMNode[], edges: PMEdge[], settings: AI
 
   for (const node of ordered) {
     const upstream = collectUpstream(node.id, edges, outputs);
-    updateNode(node.id, { status: 'running', inputSnapshot: upstream, errorMessage: undefined });
+    if (node.data.nodeType === 'message') {
+      updateNode(node.id, { inputSnapshot: upstream, errorMessage: undefined });
+    } else {
+      updateNode(node.id, { status: 'running', inputSnapshot: upstream, errorMessage: undefined });
+    }
 
     try {
       let output = '';
@@ -75,7 +79,11 @@ export async function runWorkflow(nodes: PMNode[], edges: PMEdge[], settings: AI
       }
 
       outputs.set(node.id, output);
-      updateNode(node.id, { status: 'success', output, inputSnapshot: upstream, errorMessage: undefined });
+      if (node.data.nodeType === 'message') {
+        updateNode(node.id, { status: 'idle', output, inputSnapshot: upstream, errorMessage: undefined });
+      } else {
+        updateNode(node.id, { status: 'success', output, inputSnapshot: upstream, errorMessage: undefined });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown workflow error.';
       updateNode(node.id, { status: 'error', errorMessage: message });
