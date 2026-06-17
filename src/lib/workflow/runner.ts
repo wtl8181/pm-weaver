@@ -1,6 +1,6 @@
 import type { AISettings, DingMeetingConfig, PMEdge, PMNode, PMNodeData, TeamupConfig } from '../../types/workflow';
 import { runAINode } from '../ai/runAI';
-import { renderTeamupTicket, runDingMeeting } from './actions';
+import { runDingMeeting, runTeamup } from './actions';
 
 type UpdateNode = (nodeId: string, patch: Partial<PMNodeData>) => void;
 
@@ -64,7 +64,7 @@ export async function runWorkflow(nodes: PMNode[], edges: PMEdge[], settings: AI
           throw new Error('Message node is empty.');
         }
       } else if (node.data.nodeType === 'teamup') {
-        output = renderTeamupTicket(node.data.config as TeamupConfig, upstream);
+        output = await runTeamup(node.data.config as TeamupConfig, upstream);
       } else if (node.data.nodeType === 'dingMeeting') {
         output = await runDingMeeting(node.data.config as DingMeetingConfig, upstream);
       } else {

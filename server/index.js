@@ -77,6 +77,38 @@ ${result ? `## DingTalk Result\n\n\`\`\`json\n${JSON.stringify(result, null, 2)}
 `;
 }
 
+function teamupMarkdown(body, result) {
+  const status = result ? 'created-via-hermes' : 'draft';
+  return `# TEAMUP - ${body.title}
+
+## Status
+
+${status}
+
+## Template
+
+${body.template || 'N/A'}
+
+## Owner
+
+${body.owner || 'TBD'}
+
+## Priority
+
+${body.priority || 'TBD'}
+
+## Description
+
+${body.description || 'TBD'}
+
+## Upstream Context
+
+${body.upstream || 'N/A'}
+
+${result ? `## Hermes Result\n\n${result}\n` : ''}
+`;
+}
+
 function parseFrontmatter(markdown) {
   if (!markdown.startsWith('---\n')) return {};
   const end = markdown.indexOf('\n---', 4);
@@ -223,6 +255,79 @@ function callHermesCli(body) {
   });
 }
 
+function callHermesAgent(prompt) {
+  const args = ['-z', prompt, '--ignore-rules'];
+
+  return new Promise((resolve, reject) => {
+    const child = spawn('hermes', args, {
+      cwd: projectRoot,
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    const timeout = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error('Hermes Agent timed out after 180 seconds.'));
+    }, 180000);
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on('error', () => {
+      clearTimeout(timeout);
+      reject(new Error('Hermes CLI is not available on PATH.'));
+    });
+    child.on('close', (code) => {
+      clearTimeout(timeout);
+      if (code === 0) {
+        resolve(stdout.trim());
+        return;
+      }
+      reject(new Error(stderr.trim() || `Hermes Agent exited with code ${code}.`));
+    });
+  });
+}
+
+async function createTeamup(body) {
+  const title = String(body.title ?? '').trim();
+  if (!title) {
+    throw new Error('TEAMUP requires title.');
+  }
+
+  if (!body.createInTeamup) {
+    return { markdown: teamupMarkdown(body) };
+  }
+
+  const prompt = `You are acting as an automation agent for PM Weaver.
+
+Goal: create a real Webull Teamup issue/ticket using the available Webull Teamup MCP tools.
+
+Use the Teamup MCP tools that Hermes has available. If a required Teamup field is missing or the available MCP tools do not support creation, do not invent data. Return a concise failure explanation and list the missing fields/tools.
+
+Ticket data:
+- Title: ${title}
+- Template: ${body.template || 'N/A'}
+- Owner: ${body.owner || 'TBD'}
+- Priority: ${body.priority || 'TBD'}
+- Description: ${body.description || 'TBD'}
+
+Upstream context:
+${body.upstream || 'N/A'}
+
+After attempting creation, return Markdown with:
+- Creation status
+- Teamup issue key/id/url if created
+- Product/component/version/labels used
+- Any missing fields or follow-up needed`;
+
+  const result = await callHermesAgent(prompt);
+  return { markdown: teamupMarkdown(body, result), result };
+}
+
 function runCommand(command, args) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -343,6 +448,13 @@ const server = createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/actions/ding-meeting') {
       const body = await readJsonBody(request);
       const result = await createDingMeeting(body);
+      sendJson(response, 200, result);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/actions/teamup') {
+      const body = await readJsonBody(request);
+      const result = await createTeamup(body);
       sendJson(response, 200, result);
       return;
     }

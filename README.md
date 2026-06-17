@@ -67,7 +67,7 @@ The dev command starts two local processes:
 
 - **Message Node / 消息节点**：stores raw Slack, email, meeting notes, or requirement discussion text. 存放 Slack、邮件、会议纪要、需求讨论等原始消息。
 - **PRD Node / PRD 节点**：uses upstream message context to generate a PRD draft with the selected AI provider. 基于上游消息上下文调用当前选择的 AI Provider 生成 PRD 初稿。
-- **TEAMUP Node / TEAMUP 节点**：creates a TeamUP ticket request from a local template and saves it to the vault. 通过本地模板生成 TEAMUP 单据请求，并保存到 Vault。
+- **TEAMUP Node / TEAMUP 节点**：creates a TeamUP ticket request from a local template; when enabled, delegates real Teamup creation to Hermes Agent so Hermes can use its Webull Teamup MCP. 通过本地模板生成 TEAMUP 单据请求；打开创建开关后交给 Hermes Agent 调用 Webull Teamup MCP 创建真实单子。
 - **Ding Meeting Node / 钉钉会议节点**：creates a DingTalk meeting draft from a template; when enabled, calls `dws calendar event create` to create the real meeting. 通过模板生成钉钉会议草稿；打开创建开关后会调用 `dws calendar event create` 创建真实会议。
 
 ## Data Storage / 数据存储

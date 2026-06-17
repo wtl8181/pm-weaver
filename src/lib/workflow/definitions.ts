@@ -47,6 +47,7 @@ export function createNode(type: PMNodeType, position = { x: 120, y: 120 }): PMN
                   description: '',
                   owner: '',
                   priority: 'P2',
+                  createInTeamup: false,
                 }
               : {
                   title: 'Product Sync',

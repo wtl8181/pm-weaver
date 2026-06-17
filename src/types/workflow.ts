@@ -19,6 +19,7 @@ export interface TeamupConfig {
   description: string;
   owner: string;
   priority: string;
+  createInTeamup: boolean;
 }
 
 export interface DingMeetingConfig {

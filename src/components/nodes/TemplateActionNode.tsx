@@ -58,6 +58,14 @@ export function TemplateActionNode({ id, data }: NodeProps<PMNodeData>) {
           placeholder="Ticket body or acceptance notes"
           multiline
         />
+        <label className="nodrag flex items-center gap-2 rounded-md border border-line bg-canvas/70 px-3 py-2 text-xs text-slate-300">
+          <input
+            type="checkbox"
+            checked={Boolean(config.createInTeamup)}
+            onChange={(event) => patch({ createInTeamup: event.target.checked })}
+          />
+          Create in TeamUP through Hermes on Run
+        </label>
       </PMNodeShell>
     );
   }
