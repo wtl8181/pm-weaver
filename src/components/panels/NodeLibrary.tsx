@@ -1,6 +1,14 @@
-import { Plus } from 'lucide-react';
+import { CalendarPlus, FileText, MessageSquare, Plus, Ticket } from 'lucide-react';
 import { nodeDefinitions } from '../../lib/workflow/definitions';
 import { useWorkflowStore } from '../../store/workflowStore';
+import type { PMNodeType } from '../../types/workflow';
+
+const nodeIcons: Record<PMNodeType, typeof MessageSquare> = {
+  message: MessageSquare,
+  prd: FileText,
+  teamup: Ticket,
+  dingMeeting: CalendarPlus,
+};
 
 export function NodeLibrary() {
   const addNode = useWorkflowStore((state) => state.addNode);
@@ -12,19 +20,30 @@ export function NodeLibrary() {
         <div className="mt-1 text-xs text-slate-500">Add PM workflow blocks to the canvas.</div>
       </div>
       <div className="space-y-3 overflow-y-auto p-4">
-        {nodeDefinitions.map((definition) => (
-          <button
-            key={definition.type}
-            className="group w-full rounded-lg border border-line bg-elevated p-3 text-left transition hover:border-accent/70 hover:bg-slate-800"
-            onClick={() => addNode(definition.type)}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-slate-100">{definition.label}</div>
-              <Plus className="text-slate-500 group-hover:text-accent" size={16} />
-            </div>
-            <div className="mt-2 text-xs leading-5 text-slate-400">{definition.description}</div>
-          </button>
-        ))}
+        {nodeDefinitions.map((definition) => {
+          const Icon = nodeIcons[definition.type];
+
+          return (
+            <button
+              key={definition.type}
+              className="group w-full rounded-lg border border-line bg-elevated p-3 text-left transition hover:border-accent/70 hover:bg-slate-800"
+              onClick={() => addNode(definition.type)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-canvas text-slate-400 transition group-hover:border-accent/60 group-hover:text-accent">
+                    <Icon size={17} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-slate-100">{definition.label}</div>
+                    <div className="mt-1 text-xs leading-5 text-slate-400">{definition.description}</div>
+                  </div>
+                </div>
+                <Plus className="mt-2 shrink-0 text-slate-500 group-hover:text-accent" size={16} />
+              </div>
+            </button>
+          );
+        })}
       </div>
     </aside>
   );
