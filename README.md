@@ -58,7 +58,7 @@ The dev command starts two local processes:
 2. PM Weaver 会在项目内 Obsidian Vault 中创建一个 Task Markdown 文件。
 3. 点击新建后进入该 Task 的画布。
 4. 在 **Message** 节点中粘贴原始产品上下文。
-5. 将 **Message** 节点连接到 **PRD** 节点。
+5. 将 **Message** 节点连接到 **PRD**、**TEAMUP** 或 **Ding Meeting** 节点。
 6. 打开 **Settings** 选择 AI Provider。使用本地 Ollama 兼容的 Hermes 模型时选择 **Local Hermes**；使用 OpenAI 时再填写 API Key。
 7. 点击 **Run** 运行工作流。
 8. 点击 **PRD** 节点，在右侧面板查看、复制或下载生成的 Markdown。
@@ -66,7 +66,9 @@ The dev command starts two local processes:
 ## Implemented Nodes / 已实现节点
 
 - **Message Node / 消息节点**：stores raw Slack, email, meeting notes, or requirement discussion text. 存放 Slack、邮件、会议纪要、需求讨论等原始消息。
-- **PRD Node / PRD 节点**：uses upstream message context to generate a PRD draft with OpenAI. 基于上游消息上下文调用 OpenAI 生成 PRD 初稿。
+- **PRD Node / PRD 节点**：uses upstream message context to generate a PRD draft with the selected AI provider. 基于上游消息上下文调用当前选择的 AI Provider 生成 PRD 初稿。
+- **TEAMUP Node / TEAMUP 节点**：creates a TeamUP ticket request from a local template and saves it to the vault. 通过本地模板生成 TEAMUP 单据请求，并保存到 Vault。
+- **Ding Meeting Node / 钉钉会议节点**：creates a DingTalk meeting draft from a template; when enabled, calls `dws calendar event create` to create the real meeting. 通过模板生成钉钉会议草稿；打开创建开关后会调用 `dws calendar event create` 创建真实会议。
 
 ## Data Storage / 数据存储
 

@@ -40,6 +40,43 @@ function nodeMarkdown({ content, label, nodeId, nodeType, taskId }) {
   return `---\npm_weaver_type: ${nodeType}\ntask_id: ${taskId}\nnode_id: ${nodeId}\nnode_label: ${JSON.stringify(label)}\nupdated_at: ${new Date().toISOString()}\n---\n\n${content ?? ''}\n`;
 }
 
+function dingMeetingMarkdown(body, result) {
+  const created = result ? 'created' : 'draft';
+  return `# Ding Meeting - ${body.title}
+
+## Status
+
+${created}
+
+## Time
+
+- Start: ${body.start}
+- End: ${body.end}
+
+## Attendees
+
+${body.attendees || 'N/A'}
+
+## Open DingTalk IDs
+
+${body.openDingTalkIds || 'N/A'}
+
+## Location
+
+${body.location || 'N/A'}
+
+## Description
+
+${body.description || 'N/A'}
+
+## Upstream Context
+
+${body.upstream || 'N/A'}
+
+${result ? `## DingTalk Result\n\n\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\`\n` : ''}
+`;
+}
+
 function parseFrontmatter(markdown) {
   if (!markdown.startsWith('---\n')) return {};
   const end = markdown.indexOf('\n---', 4);
@@ -186,6 +223,64 @@ function callHermesCli(body) {
   });
 }
 
+function runCommand(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: projectRoot,
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on('error', () => {
+      reject(new Error(`${command} is not available on PATH.`));
+    });
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+        return;
+      }
+      reject(new Error(stderr.trim() || `${command} exited with code ${code}.`));
+    });
+  });
+}
+
+async function createDingMeeting(body) {
+  const title = String(body.title ?? '').trim();
+  const start = String(body.start ?? '').trim();
+  const end = String(body.end ?? '').trim();
+
+  if (!title || !start || !end) {
+    throw new Error('Ding Meeting requires title, start, and end.');
+  }
+
+  if (!body.createInDingTalk) {
+    return { markdown: dingMeetingMarkdown(body) };
+  }
+
+  const args = ['calendar', 'event', 'create', '--title', title, '--start', start, '--end', end, '--format', 'json'];
+  const attendees = String(body.attendees ?? '').trim();
+  const openDingTalkIds = String(body.openDingTalkIds ?? '').trim();
+  const location = String(body.location ?? '').trim();
+  const description = String(body.description ?? '').trim();
+
+  if (attendees) args.push('--attendees', attendees);
+  if (openDingTalkIds) args.push('--open-dingtalk-ids', openDingTalkIds);
+  if (location) args.push('--location', location);
+  if (description) args.push('--desc', description);
+
+  const { stdout } = await runCommand('dws', args);
+  const result = JSON.parse(stdout || '{}');
+  return { markdown: dingMeetingMarkdown(body, result), result };
+}
+
 async function ensureVault() {
   await mkdir(tasksRoot, { recursive: true });
   await mkdir(workflowsRoot, { recursive: true });
@@ -242,6 +337,13 @@ const server = createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const text = await callLocalAI(body);
       sendJson(response, 200, { text });
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/actions/ding-meeting') {
+      const body = await readJsonBody(request);
+      const result = await createDingMeeting(body);
+      sendJson(response, 200, result);
       return;
     }
 

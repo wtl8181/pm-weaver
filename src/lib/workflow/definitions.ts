@@ -11,6 +11,16 @@ export const nodeDefinitions: NodeDefinition[] = [
     label: 'PRD',
     description: 'Generate a PRD draft from connected message context.',
   },
+  {
+    type: 'teamup',
+    label: 'TEAMUP',
+    description: 'Create a TeamUP ticket request from a reusable template.',
+  },
+  {
+    type: 'dingMeeting',
+    label: 'Ding Meeting',
+    description: 'Create a DingTalk meeting from a calendar template.',
+  },
 ];
 
 export function createNode(type: PMNodeType, position = { x: 120, y: 120 }): PMNode {
@@ -25,7 +35,29 @@ export function createNode(type: PMNodeType, position = { x: 120, y: 120 }): PMN
       label: definition?.label ?? type,
       nodeType: type,
       status: 'idle',
-      config: type === 'message' ? { title: 'Raw Message', rawText: '' } : { title: 'PRD Draft' },
+      config:
+        type === 'message'
+          ? { title: 'Raw Message', rawText: '' }
+          : type === 'prd'
+            ? { title: 'PRD Draft' }
+            : type === 'teamup'
+              ? {
+                  title: 'New TeamUP Ticket',
+                  template: 'Product requirement follow-up',
+                  description: '',
+                  owner: '',
+                  priority: 'P2',
+                }
+              : {
+                  title: 'Product Sync',
+                  start: '',
+                  end: '',
+                  attendees: '',
+                  openDingTalkIds: '',
+                  location: '',
+                  description: '',
+                  createInDingTalk: false,
+                },
     },
   };
 }

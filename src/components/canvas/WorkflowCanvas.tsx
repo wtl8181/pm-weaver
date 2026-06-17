@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { TextInputNode } from '../nodes/TextInputNode';
 import { AITransformNode } from '../nodes/AITransformNode';
+import { TemplateActionNode } from '../nodes/TemplateActionNode';
 
 export function WorkflowCanvas() {
   const nodes = useWorkflowStore((state) => state.nodes);
@@ -16,6 +17,8 @@ export function WorkflowCanvas() {
     () => ({
       message: TextInputNode,
       prd: AITransformNode,
+      teamup: TemplateActionNode,
+      dingMeeting: TemplateActionNode,
     }),
     [],
   );

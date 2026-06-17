@@ -1,5 +1,6 @@
-import type { AISettings, PMEdge, PMNode, PMNodeData } from '../../types/workflow';
+import type { AISettings, DingMeetingConfig, PMEdge, PMNode, PMNodeData, TeamupConfig } from '../../types/workflow';
 import { runAINode } from '../ai/runAI';
+import { renderTeamupTicket, runDingMeeting } from './actions';
 
 type UpdateNode = (nodeId: string, patch: Partial<PMNodeData>) => void;
 
@@ -62,6 +63,10 @@ export async function runWorkflow(nodes: PMNode[], edges: PMEdge[], settings: AI
         if (!output) {
           throw new Error('Message node is empty.');
         }
+      } else if (node.data.nodeType === 'teamup') {
+        output = renderTeamupTicket(node.data.config as TeamupConfig, upstream);
+      } else if (node.data.nodeType === 'dingMeeting') {
+        output = await runDingMeeting(node.data.config as DingMeetingConfig, upstream);
       } else {
         if (!upstream.trim()) {
           throw new Error(`${node.data.label} requires upstream context.`);

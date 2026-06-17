@@ -1,6 +1,6 @@
 import type { Edge, Node } from 'reactflow';
 
-export type PMNodeType = 'message' | 'prd';
+export type PMNodeType = 'message' | 'prd' | 'teamup' | 'dingMeeting';
 
 export type NodeStatus = 'idle' | 'running' | 'success' | 'error';
 
@@ -13,11 +13,30 @@ export interface PrdConfig {
   title: string;
 }
 
+export interface TeamupConfig {
+  title: string;
+  template: string;
+  description: string;
+  owner: string;
+  priority: string;
+}
+
+export interface DingMeetingConfig {
+  title: string;
+  start: string;
+  end: string;
+  attendees: string;
+  openDingTalkIds: string;
+  location: string;
+  description: string;
+  createInDingTalk: boolean;
+}
+
 export interface PMNodeData {
   label: string;
   nodeType: PMNodeType;
   status: NodeStatus;
-  config: MessageConfig | PrdConfig;
+  config: MessageConfig | PrdConfig | TeamupConfig | DingMeetingConfig;
   inputSnapshot?: string;
   output?: string;
   errorMessage?: string;

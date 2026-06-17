@@ -1,5 +1,5 @@
 import { Handle, Position } from 'reactflow';
-import { AlertTriangle, FileText, MessageSquare } from 'lucide-react';
+import { AlertTriangle, CalendarPlus, FileText, MessageSquare, Ticket } from 'lucide-react';
 import type { PropsWithChildren } from 'react';
 import type { PMNodeData, PMNodeType } from '../../types/workflow';
 import { StatusPill } from '../ui/StatusPill';
@@ -7,6 +7,8 @@ import { StatusPill } from '../ui/StatusPill';
 const icons: Record<PMNodeType, typeof MessageSquare> = {
   message: MessageSquare,
   prd: FileText,
+  teamup: Ticket,
+  dingMeeting: CalendarPlus,
 };
 
 function previewText(data: PMNodeData) {
