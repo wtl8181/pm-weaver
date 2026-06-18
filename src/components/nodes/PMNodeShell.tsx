@@ -6,7 +6,7 @@ import type { PMNodeData, PMNodeType } from '../../types/workflow';
 import { StatusPill } from '../ui/StatusPill';
 
 const icons: Record<PMNodeType, typeof MessageSquare> = {
-  message: MessageSquare,
+  context: MessageSquare,
   prd: FileText,
   teamup: Ticket,
   dingMeeting: CalendarPlus,
@@ -14,11 +14,11 @@ const icons: Record<PMNodeType, typeof MessageSquare> = {
 
 function previewText(data: PMNodeData) {
   if (data.errorMessage) return data.errorMessage;
-  if (data.nodeType === 'message' && 'rawText' in data.config && data.config.rawText) {
-    return data.config.rawText.slice(0, 220);
+  if (data.nodeType === 'context' && 'content' in data.config && data.config.content) {
+    return data.config.content.slice(0, 220);
   }
   if (data.output) return data.output.slice(0, 220);
-  if (data.nodeType === 'message') return 'Paste raw source text here.';
+  if (data.nodeType === 'context') return 'Provide context here.';
   return 'No output yet. Run the workflow to generate an artifact.';
 }
 
@@ -33,7 +33,7 @@ export function PMNodeShell({ data, selected = false, children }: PropsWithChild
       )}
     >
       {selected && <div className="absolute left-3 right-3 top-0 h-0.5 rounded-full bg-accent" />}
-      {data.nodeType !== 'message' && <Handle type="target" position={Position.Left} />}
+      {data.nodeType !== 'context' && <Handle type="target" position={Position.Left} />}
       <div className="border-b border-line px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
@@ -45,15 +45,20 @@ export function PMNodeShell({ data, selected = false, children }: PropsWithChild
               <div className="text-[11px] text-slate-500">{data.nodeType}</div>
             </div>
           </div>
-          {data.nodeType !== 'message' && <StatusPill status={data.status} />}
+          {data.nodeType !== 'context' && <StatusPill status={data.status} />}
         </div>
       </div>
       <div className="space-y-3 p-4">
         {children}
-        <div className="max-h-24 overflow-hidden rounded-md border border-line bg-canvas/70 p-3 text-xs leading-5 text-slate-300">
-          {data.status === 'error' && <AlertTriangle className="mb-1 inline text-danger" size={14} />}
-          <pre className="whitespace-pre-wrap break-words font-sans">{previewText(data)}</pre>
-        </div>
+        {data.nodeType !== 'context' && data.nodeType !== 'prd' && (
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Output</span>
+            <div className="max-h-24 overflow-hidden rounded-md border border-line bg-canvas/70 p-3 text-xs leading-5 text-slate-300">
+              {data.status === 'error' && <AlertTriangle className="mb-1 inline text-danger" size={14} />}
+              <pre className="whitespace-pre-wrap break-words font-sans">{previewText(data)}</pre>
+            </div>
+          </label>
+        )}
       </div>
       <Handle type="source" position={Position.Right} />
     </div>

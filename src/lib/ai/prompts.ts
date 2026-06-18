@@ -2,12 +2,12 @@ import type { PMNodeType } from '../../types/workflow';
 
 const pmSystemPrompt = `You are PM Weaver, a senior product manager assistant. Transform messy product context into crisp, structured Markdown. Be specific, preserve concrete facts, call out assumptions, and do not invent unavailable details.`;
 
-export function getPromptForNode(type: PMNodeType, upstream: string): { systemPrompt: string; userPrompt: string } {
+export function getPromptForNode(type: PMNodeType, upstream: string, promptHint?: string): { systemPrompt: string; userPrompt: string } {
   switch (type) {
     case 'prd':
       return {
         systemPrompt: pmSystemPrompt,
-        userPrompt: `Generate a PRD draft from the context below. Return Markdown with this structure:
+        userPrompt: `Generate a PRD draft from the context below${promptHint ? `. Additional guidance from the author: ${promptHint}` : ''}. Return Markdown with this structure:
 
 # PRD - Project Name
 

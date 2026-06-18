@@ -85,9 +85,17 @@ function teamupMarkdown(body, result) {
 
 ${status}
 
-## Template
+## Issue Type
 
 ${body.template || 'N/A'}
+
+## Product Line
+
+${body.productLine || '微牛OMNI'}
+
+## Version
+
+${body.version || '产品待规划版本'}
 
 ## Owner
 
@@ -105,8 +113,14 @@ ${body.description || 'TBD'}
 
 ${body.upstream || 'N/A'}
 
+${body.url ? `## Omni Link\n\n${body.url}\n\n` : ''}
 ${result ? `## Hermes Result\n\n${result}\n` : ''}
 `;
+}
+
+function extractFirstUrl(text) {
+  const match = String(text ?? '').match(/https?:\/\/[^\s)\]}>'"]+/);
+  return match?.[0] ?? '';
 }
 
 function parseFrontmatter(markdown) {
@@ -310,7 +324,9 @@ Use the Teamup MCP tools that Hermes has available. If a required Teamup field i
 
 Ticket data:
 - Title: ${title}
-- Template: ${body.template || 'N/A'}
+- Product Line: ${body.productLine || '微牛OMNI'}
+- Version: ${body.version || '产品待规划版本'}
+- Issue Type: ${body.template || 'N/A'}
 - Owner: ${body.owner || 'TBD'}
 - Priority: ${body.priority || 'TBD'}
 - Description: ${body.description || 'TBD'}
@@ -320,12 +336,13 @@ ${body.upstream || 'N/A'}
 
 After attempting creation, return Markdown with:
 - Creation status
-- Teamup issue key/id/url if created
+- Teamup issue key/id/url if created. Put the Omni or Teamup URL on its own line.
 - Product/component/version/labels used
 - Any missing fields or follow-up needed`;
 
   const result = await callHermesAgent(prompt);
-  return { markdown: teamupMarkdown(body, result), result };
+  const url = extractFirstUrl(result);
+  return { markdown: teamupMarkdown({ ...body, url }, result), result, url };
 }
 
 function runCommand(command, args) {

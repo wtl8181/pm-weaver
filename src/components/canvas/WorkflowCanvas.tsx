@@ -1,11 +1,13 @@
-import ReactFlow, { Background, Controls, MiniMap, type NodeTypes } from 'reactflow';
+import ReactFlow, { Background, Controls, MiniMap, type NodeTypes, useReactFlow } from 'reactflow';
 import { useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { TextInputNode } from '../nodes/TextInputNode';
 import { AITransformNode } from '../nodes/AITransformNode';
 import { TemplateActionNode } from '../nodes/TemplateActionNode';
+import type { PMNodeType } from '../../types/workflow';
 
 export function WorkflowCanvas() {
+  const { project } = useReactFlow();
   const nodes = useWorkflowStore((state) => state.nodes);
   const edges = useWorkflowStore((state) => state.edges);
   const onNodesChange = useWorkflowStore((state) => state.onNodesChange);
@@ -15,13 +17,26 @@ export function WorkflowCanvas() {
 
   const nodeTypes = useMemo<NodeTypes>(
     () => ({
-      message: TextInputNode,
+      context: TextInputNode,
       prd: AITransformNode,
       teamup: TemplateActionNode,
       dingMeeting: TemplateActionNode,
     }),
     [],
   );
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData('application/pmweaver-node-type') as PMNodeType | '';
+    if (!type) return;
+    const position = project({ x: e.clientX, y: e.clientY });
+    useWorkflowStore.getState().addNodeAt(type, position);
+  };
 
   return (
     <ReactFlow
@@ -33,6 +48,8 @@ export function WorkflowCanvas() {
       onConnect={onConnect}
       onNodeClick={(_, node) => selectNode(node.id)}
       onPaneClick={() => selectNode(undefined)}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       fitView
       deleteKeyCode={['Backspace', 'Delete']}
       proOptions={{ hideAttribution: true }}

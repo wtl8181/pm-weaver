@@ -55,7 +55,7 @@ export async function saveWorkflowToVault(taskId: string, workflow: WorkflowDocu
 }
 
 export async function saveNodeArtifactToVault(taskId: string, node: PMNode): Promise<void> {
-  const content = node.data.nodeType === 'message' ? 'rawText' in node.data.config ? node.data.config.rawText : '' : node.data.output;
+  const content = node.data.nodeType === 'context' ? 'content' in node.data.config ? node.data.config.content : '' : node.data.output;
   if (!content?.trim()) return;
 
   await fetch(`/api/vault/tasks/${encodeURIComponent(taskId)}/nodes`, {

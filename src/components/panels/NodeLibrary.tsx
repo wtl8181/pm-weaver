@@ -1,18 +1,15 @@
 import { CalendarPlus, FileText, MessageSquare, Plus, Ticket } from 'lucide-react';
 import { nodeDefinitions } from '../../lib/workflow/definitions';
-import { useWorkflowStore } from '../../store/workflowStore';
 import type { PMNodeType } from '../../types/workflow';
 
 const nodeIcons: Record<PMNodeType, typeof MessageSquare> = {
-  message: MessageSquare,
+  context: MessageSquare,
   prd: FileText,
   teamup: Ticket,
   dingMeeting: CalendarPlus,
 };
 
 export function NodeLibrary() {
-  const addNode = useWorkflowStore((state) => state.addNode);
-
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col border-r border-line bg-panel">
       <div className="border-b border-line px-5 py-4">
@@ -24,10 +21,14 @@ export function NodeLibrary() {
           const Icon = nodeIcons[definition.type];
 
           return (
-            <button
+            <div
               key={definition.type}
-              className="group w-full rounded-lg border border-line bg-elevated p-3 text-left transition hover:border-accent/70 hover:bg-slate-800"
-              onClick={() => addNode(definition.type)}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('application/pmweaver-node-type', definition.type);
+                e.dataTransfer.effectAllowed = 'copy';
+              }}
+              className="group w-full cursor-grab rounded-lg border border-line bg-elevated p-3 text-left transition hover:border-accent/70 hover:bg-slate-800 active:cursor-grabbing"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -41,7 +42,7 @@ export function NodeLibrary() {
                 </div>
                 <Plus className="mt-2 shrink-0 text-slate-500 group-hover:text-accent" size={16} />
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

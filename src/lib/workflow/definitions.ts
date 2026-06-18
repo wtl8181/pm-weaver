@@ -2,19 +2,19 @@ import type { NodeDefinition, PMEdge, PMNode, PMNodeType, WorkflowDocument } fro
 
 export const nodeDefinitions: NodeDefinition[] = [
   {
-    type: 'message',
-    label: 'Message',
-    description: 'Paste raw product messages, notes, or requirement context.',
+    type: 'context',
+    label: 'Context',
+    description: 'Provide upstream context to downstream nodes such as PRD generation.',
   },
   {
     type: 'prd',
     label: 'PRD',
-    description: 'Generate a PRD draft from connected message context.',
+    description: 'Generate a PRD draft from connected context.',
   },
   {
     type: 'teamup',
     label: 'TEAMUP',
-    description: 'Create a TeamUP ticket request from a reusable template.',
+    description: 'Create a TeamUP issue from an upstream PRD.',
   },
   {
     type: 'dingMeeting',
@@ -36,18 +36,20 @@ export function createNode(type: PMNodeType, position = { x: 120, y: 120 }): PMN
       nodeType: type,
       status: 'idle',
       config:
-        type === 'message'
-          ? { title: 'Raw Message', rawText: '' }
+        type === 'context'
+          ? { content: '' }
           : type === 'prd'
-            ? { title: 'PRD Draft' }
+            ? { title: '', content: '', promptHint: '' }
             : type === 'teamup'
               ? {
-                  title: 'New TeamUP Ticket',
-                  template: 'Product requirement follow-up',
+                  title: '',
+                  productLine: '微牛OMNI',
+                  version: '产品待规划版本',
+                  template: 'Requirement',
                   description: '',
                   owner: '',
                   priority: 'P2',
-                  createInTeamup: false,
+                  createInTeamup: true,
                 }
               : {
                   title: 'Product Sync',
@@ -64,21 +66,21 @@ export function createNode(type: PMNodeType, position = { x: 120, y: 120 }): PMN
 }
 
 export function createStarterWorkflow(taskId: string): WorkflowDocument {
-  const messageNode = createNode('message', { x: 120, y: 160 });
+  const contextNode = createNode('context', { x: 120, y: 160 });
   const prdNode = createNode('prd', { x: 500, y: 160 });
 
   return {
     taskId,
-    nodes: [messageNode, prdNode],
+    nodes: [contextNode, prdNode],
     edges: [
       {
-        id: `${messageNode.id}-${prdNode.id}`,
-        source: messageNode.id,
+        id: `${contextNode.id}-${prdNode.id}`,
+        source: contextNode.id,
         target: prdNode.id,
         animated: true,
         style: { stroke: '#3dd6a6' },
       },
     ] satisfies PMEdge[],
-    selectedNodeId: messageNode.id,
+    selectedNodeId: contextNode.id,
   };
 }

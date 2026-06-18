@@ -22,14 +22,14 @@ function Field({
       {multiline ? (
         <textarea
           className="nodrag h-20 w-full resize-none rounded-md border border-line bg-canvas px-3 py-2 text-sm text-slate-100 outline-none focus:border-accent"
-          value={value}
+          defaultValue={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
         />
       ) : (
         <input
           className="nodrag w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm text-slate-100 outline-none focus:border-accent"
-          value={value}
+          defaultValue={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
         />
@@ -47,17 +47,11 @@ export function TemplateActionNode({ id, data, selected }: NodeProps<PMNodeData>
 
     return (
       <PMNodeShell data={data} selected={selected}>
-        <Field label="Title" value={config.title} onChange={(title) => patch({ title })} />
-        <Field label="Template" value={config.template} onChange={(template) => patch({ template })} />
+        <Field label="Product Line" value={config.productLine ?? '微牛OMNI'} onChange={(productLine) => patch({ productLine })} />
+        <Field label="Version" value={config.version ?? '产品待规划版本'} onChange={(version) => patch({ version })} />
+        <Field label="Issue Type" value={config.template} onChange={(template) => patch({ template })} placeholder="Requirement / Bug / Task" />
         <Field label="Owner" value={config.owner} onChange={(owner) => patch({ owner })} placeholder="Owner or team" />
         <Field label="Priority" value={config.priority} onChange={(priority) => patch({ priority })} placeholder="P0 / P1 / P2" />
-        <Field
-          label="Description"
-          value={config.description}
-          onChange={(description) => patch({ description })}
-          placeholder="Ticket body or acceptance notes"
-          multiline
-        />
         <label className="nodrag flex items-center gap-2 rounded-md border border-line bg-canvas/70 px-3 py-2 text-xs text-slate-300">
           <input
             type="checkbox"

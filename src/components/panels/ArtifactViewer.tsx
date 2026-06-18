@@ -1,6 +1,6 @@
 import { Copy, Download, PanelRightClose } from 'lucide-react';
 import { useMemo } from 'react';
-import type { MessageConfig } from '../../types/workflow';
+import type { ContextConfig } from '../../types/workflow';
 import { copyMarkdown, downloadMarkdown } from '../../lib/export/markdown';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { Button } from '../ui/Button';
@@ -14,7 +14,7 @@ export function ArtifactViewer() {
 
   const output =
     selectedNode?.data.output ??
-    (selectedNode?.data.nodeType === 'message' ? (selectedNode.data.config as MessageConfig).rawText : '');
+    (selectedNode?.data.nodeType === 'context' ? (selectedNode.data.config as ContextConfig).content : '');
   const downloadName = `${selectedNode?.data.label ?? 'artifact'}.md`;
 
   return (
