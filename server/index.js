@@ -270,7 +270,7 @@ function callHermesCli(body) {
 }
 
 function callHermesAgent(prompt) {
-  const args = ['-z', prompt, '--ignore-rules'];
+  const args = ['-z', prompt, '--ignore-rules', '--toolsets', 'webull-teamup'];
 
   return new Promise((resolve, reject) => {
     const child = spawn('hermes', args, {
@@ -285,8 +285,8 @@ function callHermesAgent(prompt) {
       const details = [stdout.trim() ? `stdout:\n${stdout.trim()}` : '', stderr.trim() ? `stderr:\n${stderr.trim()}` : '']
         .filter(Boolean)
         .join('\n\n');
-      reject(new Error(`Hermes Agent timed out after 180 seconds.${details ? `\n\n${details}` : ''}`));
-    }, 180000);
+      reject(new Error(`Hermes Agent timed out after 300 seconds.${details ? `\n\n${details}` : ''}`));
+    }, 300000);
 
     child.stdout.on('data', (chunk) => {
       stdout += chunk.toString();
