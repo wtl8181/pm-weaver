@@ -275,14 +275,17 @@ function callHermesAgent(prompt) {
   return new Promise((resolve, reject) => {
     const child = spawn('hermes', args, {
       cwd: projectRoot,
-      env: process.env,
+      env: { ...process.env, HERMES_ACCEPT_HOOKS: '1', NO_COLOR: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stdout = '';
     let stderr = '';
     const timeout = setTimeout(() => {
       child.kill('SIGTERM');
-      reject(new Error('Hermes Agent timed out after 180 seconds.'));
+      const details = [stdout.trim() ? `stdout:\n${stdout.trim()}` : '', stderr.trim() ? `stderr:\n${stderr.trim()}` : '']
+        .filter(Boolean)
+        .join('\n\n');
+      reject(new Error(`Hermes Agent timed out after 180 seconds.${details ? `\n\n${details}` : ''}`));
     }, 180000);
 
     child.stdout.on('data', (chunk) => {
@@ -320,7 +323,19 @@ async function createTeamup(body) {
 
 Goal: create a real Webull Teamup issue/ticket using the available Webull Teamup MCP tools.
 
-Use the Teamup MCP tools that Hermes has available. If a required Teamup field is missing or the available MCP tools do not support creation, do not invent data. Return a concise failure explanation and list the missing fields/tools.
+Use the Teamup MCP tools that Hermes has available. Do not browse, search broadly, or repeatedly call list tools.
+Use these known defaults directly unless the input explicitly overrides them:
+- product_id: 3
+- product name: 微牛Omni / 微牛OMNI
+- project_id_list: [10503]
+- project/version name: OMNI-产品待规划版本
+- issue_type: 0
+- market: [10907]
+- broker_review: [11001]
+- affiliate_communication: 0
+- priority mapping: P0=10001, P1=10002, P2=10003, P3=10004, P4=10005
+
+If assignee or test_owner is missing, call get_user_setting once and use data.userId for both fields. If create_issue fails because a required field is missing, return the exact error and stop. Do not retry the same failing tool call more than once.
 
 Ticket data:
 - Title: ${title}
